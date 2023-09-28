@@ -1,0 +1,26 @@
+FROM picarro-host-team-base-image.jfrog.io/base-image:1.0
+RUN adduser --disabled-password cluster-peaks-api
+# set work directory
+WORKDIR /build/cluster-peaks-api
+RUN mkdir logs
+COPY requirements.txt ./
+RUN apt-get update && apt-get install -y cmake curl
+RUN python -m venv venv
+RUN venv/bin/pip install --upgrade pip && \
+    venv/bin/pip install -r requirements.txt --default-timeout=100
+# set environment variables
+ENV PYTHONPATH /build/cluster-peaks-api/src
+ENV PYTHONUNBUFFERED 1
+
+COPY docker/entrypoint.sh .
+
+RUN chmod +x entrypoint.sh
+COPY  src/ ./src
+COPY  tests/ ./tests
+COPY  scripts/test_run.sh ./scripts/
+RUN chmod +x ./scripts/test_run.sh
+COPY  conf/ ./conf
+RUN chown -R cluster-peaks-api:cluster-peaks-api ./
+USER cluster-peaks-api
+EXPOSE 8000
+ENTRYPOINT ["bash", "entrypoint.sh"]
